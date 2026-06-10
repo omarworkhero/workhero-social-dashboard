@@ -12,11 +12,10 @@ concurrency:
   group: refresh-social
   cancel-in-progress: false
 
-timeout-minutes: 15
-
 jobs:
   refresh:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
