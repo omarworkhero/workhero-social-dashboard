@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WorkHero — Social Media Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#f8f9fa;--card:#fff;--border:#e5e7eb;--text:#111827;--muted:#6b7280;
+  --blue:#2563eb;--green:#16a34a;--red:#dc2626;--orange:#d97706;--purple:#7c3aed;
+  --li:#0077b5;--ig:#e1306c;--fb:#1877f2;--yt:#ff0000;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.5}
+.header{background:#0f172a;color:#f1f5f9;padding:0 24px;display:flex;align-items:stretch;justify-content:space-between}
+.header-left{display:flex;align-items:center;gap:16px;padding:14px 0}
+.brand{font-size:13px;font-weight:700;color:#94a3b8;letter-spacing:.05em;text-transform:uppercase}
+.page-title{font-size:15px;font-weight:600}
+.tab-nav{display:flex;gap:0}
+.tab-btn{padding:0 20px;height:100%;display:flex;align-items:center;font-size:12px;font-weight:500;color:#94a3b8;cursor:pointer;border-bottom:3px solid transparent;background:none;border-top:none;border-left:none;border-right:none;transition:color .15s,border-color .15s}
+.tab-btn:hover{color:#e2e8f0}
+.tab-btn.active{color:#f1f5f9;border-bottom-color:#3b82f6}
+.header-right{display:flex;align-items:center;gap:8px;padding:14px 0}
+.gen-time{font-size:11px;color:#475569;margin-left:4px}
+.reload-btn{background:#1e293b;border:1px solid #334155;color:#94a3b8;padding:4px 12px;border-radius:4px;font-size:11px;cursor:pointer;margin-left:4px}
+.panel{display:none}.panel.active{display:block}
+.filter-bar{background:var(--card);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.filter-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.preset-btns{display:flex;gap:6px}
+.preset{padding:4px 12px;border-radius:4px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:var(--card);color:var(--text);transition:background .1s}
+.preset:hover{background:#f1f5f9}
+.preset.active{background:var(--text);color:#fff;border-color:var(--text)}
+.plat-sep{width:1px;height:24px;background:var(--border);margin:0 4px}
+.plat-btn{padding:4px 12px;border-radius:4px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:var(--card);color:var(--text)}
+.pba{background:var(--text);color:#fff;border-color:var(--text)}
+.pbli{background:var(--li);color:#fff;border-color:var(--li)}
+.pbig{background:var(--ig);color:#fff;border-color:var(--ig)}
+.pbfb{background:var(--fb);color:#fff;border-color:var(--fb)}
+.pbyt{background:var(--yt);color:#fff;border-color:var(--yt)}
+.date-inputs{display:flex;align-items:center;gap:6px;margin-left:auto}
+.date-inputs input{padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;color:var(--text);background:var(--card)}
+.apply-btn{padding:4px 12px;background:var(--blue);color:#fff;border:none;border-radius:4px;font-size:12px;cursor:pointer}
+.warn-box{background:#fefce8;border:1px solid #fbbf24;border-radius:6px;padding:10px 14px;font-size:12px;margin-bottom:16px;display:flex;align-items:flex-start;gap:10px}
+.warn-box b{font-weight:700}
+.warn-steps{margin-top:4px;color:#92400e;line-height:1.8}
+.warn-steps code{background:#fef9c3;padding:1px 5px;border-radius:3px;font-family:monospace;font-size:11px}
+.main{max-width:1200px;margin:0 auto;padding:20px 24px}
+.stat-banner{border-radius:8px;padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;background:#eff6ff}
+.stat-right{text-align:right;font-size:12px;color:var(--muted)}
+.stat-big{font-size:20px;font-weight:700;color:var(--text)}
+.kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:16px}
+.kpi-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px}
+.kpi-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.kpi-value{font-size:20px;font-weight:700}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:16px;overflow:hidden}
+.card-header{padding:10px 16px;border-bottom:1px solid var(--border);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);display:flex;align-items:center;gap:8px}
+.card-body{padding:16px}
+.chart-tabs{display:flex;gap:6px}
+.ctab{padding:3px 10px;border-radius:4px;font-size:11px;cursor:pointer;border:1px solid var(--border);background:var(--card)}
+.ctab.active{background:var(--text);color:#fff;border-color:var(--text)}
+.chart-wrap{height:200px}
+.charts-row{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px}
+.charts-row .card{margin-bottom:0}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:8px 12px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);border-bottom:1px solid var(--border)}
+th.r,td.r{text-align:right}
+th.s{cursor:pointer;user-select:none}
+th.s:hover{color:var(--text)}
+td{padding:8px 12px;border-bottom:1px solid var(--border);font-size:12px}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#f9fafb}
+.td-t{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.na{color:var(--muted);font-style:italic}
+.pb{display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:700;color:#fff;margin:1px}
+.pbli2{background:var(--li)}.pbig2{background:var(--ig)}.pbfb2{background:var(--fb)}.pbyt2{background:var(--yt)}
+.ct{display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;background:#f1f5f9;color:#64748b}
+.ev{font-weight:700;color:var(--purple)}
+@media(max-width:900px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.charts-row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- Lock screen -->
+<div id="lockScreen" style="position:fixed;inset:0;background:#0f172a;z-index:9999;display:flex;align-items:center;justify-content:center">
+  <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:40px 48px;text-align:center;width:360px">
+    <div style="font-size:13px;font-weight:700;color:#94a3b8;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">WorkHero</div>
+    <div style="font-size:18px;font-weight:600;color:#f1f5f9;margin-bottom:24px">Social Media Dashboard</div>
+    <input id="pwInput" type="password" placeholder="Enter password"
+      style="width:100%;padding:10px 14px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f1f5f9;font-size:14px;outline:none;margin-bottom:12px"
+      onkeydown="if(event.key==='Enter')checkPw()"
+    />
+    <div id="pwError" style="color:#f87171;font-size:12px;margin-bottom:10px;min-height:16px"></div>
+    <button onclick="checkPw()"
+      style="width:100%;padding:10px;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer">
+      Unlock
+    </button>
+  </div>
+</div>
+<script>
+(function(){
+  if(sessionStorage.getItem('wh_social_auth')==='1')
+    document.getElementById('lockScreen').style.display='none';
+})();
+function checkPw(){
+  const v=document.getElementById('pwInput').value;
+  if(v===atob('d29ya2hlcm8yMDI2')){
+    sessionStorage.setItem('wh_social_auth','1');
+    document.getElementById('lockScreen').style.display='none';
+  }else{
+    document.getElementById('pwError').textContent='Incorrect password';
+    document.getElementById('pwInput').value='';
+    document.getElementById('pwInput').focus();
+  }
+}
+</script>
+
+<div class="header">
+  <div class="header-left">
+    <span class="brand">WorkHero</span>
+    <span class="page-title">Social Media Dashboard</span>
+  </div>
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="switchTab('overview',this)">Overview</button>
+    <button class="tab-btn" onclick="switchTab('posts',this)">All Posts</button>
+  </div>
+  <div class="header-right">
+    <span style="background:#1877f2;color:#fff;font-size:11px;padding:3px 8px;border-radius:4px;font-weight:600">FB ✓ 61</span> <span style="background:#e1306c;color:#fff;font-size:11px;padding:3px 8px;border-radius:4px;font-weight:600">IG ✓ 61</span> <span style="background:#1e293b;color:#475569;font-size:11px;padding:3px 8px;border-radius:4px;font-weight:600">YT —</span> <span style="background:#1e293b;color:#475569;font-size:11px;padding:3px 8px;border-radius:4px;font-weight:600">LI —</span>
+    <span class="gen-time">Generated 2026-06-10 18:35</span>
+    <button class="reload-btn" onclick="window.location.reload()">↻ Reload</button>
+  </div>
+</div>
+
+<div class="filter-bar">
+  <span class="filter-label">Date range</span>
+  <div class="preset-btns">
+    <button class="preset" onclick="setPreset(7,this)">Last 7d</button>
+    <button class="preset active" onclick="setPreset(30,this)">Last 30d</button>
+    <button class="preset" onclick="setPresetMonth(0,this)">This month</button>
+    <button class="preset" onclick="setPresetMonth(-1,this)">Last month</button>
+    <button class="preset" onclick="setPreset(90,this)">Last 90d</button>
+  </div>
+  <div class="plat-sep"></div>
+  <span class="filter-label">Platform</span>
+  <button class="plat-btn pba" id="pbAll" onclick="setPlatform('all',this,'pba')">All</button>
+  <button class="plat-btn"    id="pbLi"  onclick="setPlatform('LinkedIn',this,'pbli')">LinkedIn</button>
+  <button class="plat-btn"    id="pbIg"  onclick="setPlatform('Instagram',this,'pbig')">Instagram</button>
+  <button class="plat-btn"    id="pbFb"  onclick="setPlatform('Facebook',this,'pbfb')">Facebook</button>
+  <button class="plat-btn"    id="pbYt"  onclick="setPlatform('youtube',this,'pbyt')">YouTube</button>
+  <div class="date-inputs">
+    <input type="date" id="dateFrom"/>
+    <span style="color:var(--muted)">→</span>
+    <input type="date" id="dateTo"/>
+    <button class="apply-btn" onclick="applyCustom()">Apply</button>
+  </div>
+</div>
+
+<!-- OVERVIEW -->
+<div id="panel-overview" class="panel active">
+<div class="main">
+
+  
+
+  <div class="stat-banner">
+    <div>
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:2px">Top Platform · Reach</div>
+      <div id="statPlatName" style="font-size:18px;font-weight:700;color:var(--blue)">—</div>
+    </div>
+    <div class="stat-right">
+      <div id="statBig" class="stat-big"></div>
+      <div id="statSub"></div>
+    </div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card"><div class="kpi-label">Total Reach</div><div class="kpi-value" id="kpiReach">—</div><div class="kpi-sub" id="kpiReachSub"></div></div>
+    <div class="kpi-card"><div class="kpi-label">Total Views</div><div class="kpi-value" id="kpiViews">—</div><div class="kpi-sub" id="kpiViewsSub"></div></div>
+    <div class="kpi-card"><div class="kpi-label">Total Engagement</div><div class="kpi-value ev" id="kpiEng">—</div><div class="kpi-sub" id="kpiEngRate"></div></div>
+    <div class="kpi-card"><div class="kpi-label">Posts Published</div><div class="kpi-value" id="kpiPosts">—</div><div class="kpi-sub" id="kpiPostsSub"></div></div>
+    <div class="kpi-card"><div class="kpi-label">Total Likes</div><div class="kpi-value" style="color:var(--green)" id="kpiLikes">—</div><div class="kpi-sub" id="kpiLikesSub"></div></div>
+  </div>
+
+  <div class="charts-row">
+    <div class="card">
+      <div class="card-header">
+        Trend
+        <div class="chart-tabs" style="margin-left:auto">
+          <button class="ctab active" onclick="showCtab('reach',this)">Reach &amp; Views</button>
+          <button class="ctab" onclick="showCtab('eng',this)">Engagement</button>
+          <button class="ctab" onclick="showCtab('freq',this)">Post Frequency</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div id="cw-reach" class="chart-wrap"><canvas id="reachChart"></canvas></div>
+        <div id="cw-eng"   class="chart-wrap" style="display:none"><canvas id="engChart"></canvas></div>
+        <div id="cw-freq"  class="chart-wrap" style="display:none"><canvas id="freqChart"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">Reach by Platform</div>
+      <div class="card-body" style="padding-top:10px">
+        <div style="height:160px"><canvas id="platChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">Platform Summary</div>
+    <table><thead><tr>
+      <th>Platform</th><th class="r">Posts</th><th class="r">Reach</th>
+      <th class="r">Views</th><th class="r">Likes</th><th class="r">Comments</th>
+      <th class="r">Shares</th><th class="r">Engagement</th><th class="r">Avg Eng Rate</th>
+    </tr></thead><tbody id="platTable"></tbody></table>
+  </div>
+
+  <div class="card">
+    <div class="card-header">Content Type Performance</div>
+    <table><thead><tr>
+      <th>Type</th><th class="r">Posts</th><th class="r">Avg Reach</th>
+      <th class="r">Avg Views</th><th class="r">Avg Engagement</th><th class="r">Avg Eng Rate</th>
+    </tr></thead><tbody id="ctypeTable"></tbody></table>
+  </div>
+
+</div></div>
+
+<!-- POSTS -->
+<div id="panel-posts" class="panel">
+<div class="main">
+  <div class="card">
+    <div class="card-header">
+      All Posts <span style="margin-left:8px;font-weight:400;color:var(--muted)" id="postsCount"></span>
+      <span style="margin-left:auto;font-size:10px;font-weight:400;color:var(--muted)">Click headers to sort</span>
+    </div>
+    <div style="overflow-x:auto">
+    <table><thead><tr>
+      <th class="s" onclick="sortPosts('date')">Date ↕</th>
+      <th>Title</th><th>Platform</th><th>Type</th>
+      <th class="r s" onclick="sortPosts('reach')">Reach ↕</th>
+      <th class="r s" onclick="sortPosts('views')">Views ↕</th>
+      <th class="r s" onclick="sortPosts('likes')">Likes ↕</th>
+      <th class="r s" onclick="sortPosts('comments')">Comments ↕</th>
+      <th class="r s" onclick="sortPosts('shares')">Shares ↕</th>
+      <th class="r s" onclick="sortPosts('engagement')">Engagement ↕</th>
+      <th class="r s" onclick="sortPosts('eng_rate')">Eng Rate ↕</th>
+      <th class="r s" onclick="sortPosts('ctr')">CTR ↕</th>
+      <th>Link</th>
+    </tr></thead><tbody id="postsBody"></tbody></table>
+    </div>
+  </div>
+</div></div>
+
+<script>
+const RAW = [{"title": "Just because your bank statements aren\u2019t in the negative doesn\u2019t mean your HVAC business is profitab", "date": "2026-03-13", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 152, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/reel/2488944328229665/", "engagement": 0, "eng_rate": 0.0}, {"title": "Just because your bank statements aren\u2019t in the negative doesn\u2019t mean your HVAC business is profitab", "date": "2026-03-13", "platform": ["Instagram"], "ctype": "video", "views": null, "reach": null, "likes": 7, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/reel/DV1kOcKjmT0/", "engagement": 7, "eng_rate": null}, {"title": "Monday vibes = Taking a hike with your dog > Sweating over your laptop in your truck. We handle your", "date": "2026-03-16", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 33, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/122164325198404081/posts/122158982294404081", "engagement": 0, "eng_rate": 0.0}, {"title": "Monday vibes = Taking a hike with your dog > Sweating over your laptop in your truck. We handle your", "date": "2026-03-16", "platform": ["Instagram"], "ctype": "image", "views": null, "reach": null, "likes": 2, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/p/DV8yPlymMr_/", "engagement": 2, "eng_rate": null}, {"title": "Everything from the gas in your truck to the booties on your feet is a job cost, whether you\u2019re trac", "date": "2026-03-17", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 36, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/reel/1695939658250629/", "engagement": 0, "eng_rate": 0.0}, {"title": "Ruth King knows how to run a HVAC business. She\u2019s been keeping HVAC businesses profitable for over 4", "date": "2026-03-18", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 490, "likes": 1, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/reel/1554545935648407/", "engagement": 1, "eng_rate": 0.2}, {"title": "Ruth King knows how to run a HVAC business. She\u2019s been keeping HVAC businesses profitable for over 4", "date": "2026-03-18", "platform": ["Instagram"], "ctype": "video", "views": null, "reach": null, "likes": 2, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/reel/DWCRyvEjxiv/", "engagement": 2, "eng_rate": null}, {"title": "This is Brandon, one of our newest senior office managers at Workhero. With over a decade of experie", "date": "2026-03-19", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 170, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/reel/1319173523380707/", "engagement": 0, "eng_rate": 0.0}, {"title": "This is Brandon, one of our newest senior office managers at Workhero. With over a decade of experie", "date": "2026-03-19", "platform": ["Instagram"], "ctype": "video", "views": null, "reach": null, "likes": 4, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/reel/DWE0aTpgVRe/", "engagement": 4, "eng_rate": null}, {"title": "Avoiding your financials won\u2019t magically make them better. Staying informed and making good business", "date": "2026-03-20", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 408, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/reel/26637889929162718/", "engagement": 0, "eng_rate": 0.0}, {"title": "Avoiding your financials won\u2019t magically make them better. Staying informed and making good business", "date": "2026-03-20", "platform": ["Instagram"], "ctype": "video", "views": null, "reach": null, "likes": 3, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/reel/DWHo-ufDH-4/", "engagement": 3, "eng_rate": null}, {"title": "If you\u2019re not checking your balance sheet you\u2019re flying blind.", "date": "2026-03-23", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 40, "likes": 1, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/122164325198404081/posts/122159485340404081", "engagement": 1, "eng_rate": 2.5}, {"title": "If you\u2019re not checking your balance sheet you\u2019re flying blind.", "date": "2026-03-23", "platform": ["Instagram"], "ctype": "image", "views": null, "reach": null, "likes": 2, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/p/DWPBLaxEjUw/", "engagement": 2, "eng_rate": null}, {"title": "Are you all caught up on HVAC Know It All: Business Edition? Every week we have industry vets breaki", "date": "2026-03-24", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 36, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/122164325198404081/posts/122159551382404081", "engagement": 0, "eng_rate": 0.0}, {"title": "Are you all caught up on HVAC Know It All: Business Edition? Every week we have industry vets breaki", "date": "2026-03-24", "platform": ["Instagram"], "ctype": "image", "views": null, "reach": null, "likes": 3, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/p/DWRn7WvDDrZ/", "engagement": 3, "eng_rate": null}, {"title": "Austin Wendel grew up in a family of home service providers. Now he runs an accounting and financial", "date": "2026-03-25", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 41, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/reel/982703107518881/", "engagement": 0, "eng_rate": 0.0}, {"title": "Austin Wendel grew up in a family of home service providers. Now he runs an accounting and financial", "date": "2026-03-25", "platform": ["Instagram"], "ctype": "video", "views": null, "reach": null, "likes": 3, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/reel/DWUGVyzj4J2/", "engagement": 3, "eng_rate": null}, {"title": "A few weeks ago our co-founder Furman was a guest on Contractor Cents, the podcast hosted by HVAC le", "date": "2026-03-26", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 40, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/122164325198404081/posts/122159667686404081", "engagement": 0, "eng_rate": 0.0}, {"title": "A few weeks ago our co-founder Furman was a guest on Contractor Cents, the podcast hosted by HVAC le", "date": "2026-03-26", "platform": ["Instagram"], "ctype": "image", "views": null, "reach": null, "likes": 1, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/p/DWWcprlmnLQ/", "engagement": 1, "eng_rate": null}, {"title": "Just because you don\u2019t have a $100K to wrap your van doesn\u2019t mean you have to roll up to jobs in a r", "date": "2026-03-27", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 1414, "likes": 3, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/reel/1516870323361107/", "engagement": 3, "eng_rate": 0.21}, {"title": "Just because you don\u2019t have a $100K to wrap your van doesn\u2019t mean you have to roll up to jobs in a r", "date": "2026-03-27", "platform": ["Instagram"], "ctype": "video", "views": null, "reach": null, "likes": 3, "comments": 1, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/reel/DWZVqieFFGd/", "engagement": 4, "eng_rate": null}, {"title": "April 15th is around the corner\u2026 are your books ready?", "date": "2026-03-30", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 49, "likes": 1, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/122164325198404081/posts/122159922314404081", "engagement": 1, "eng_rate": 2.04}, {"title": "April 15th is around the corner\u2026 are your books ready?", "date": "2026-03-30", "platform": ["Instagram"], "ctype": "image", "views": null, "reach": null, "likes": 1, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/p/DWhIEBBDzs2/", "engagement": 1, "eng_rate": null}, {"title": "Everything from the gas in your truck to the booties on your feet is a job cost whether you\u2019re track", "date": "2026-03-31", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 778, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/reel/1607961450421131/", "engagement": 0, "eng_rate": 0.0}, {"title": "Everything from the gas in your truck to the booties on your feet is a job cost whether you\u2019re track", "date": "2026-03-31", "platform": ["Instagram"], "ctype": "video", "views": null, "reach": null, "likes": 2, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/reel/DWjW4PMlaU-/", "engagement": 2, "eng_rate": null}, {"title": "This week on the podcast Gary (HVAC Know It All)and Furman break down new trends in the industry lik", "date": "2026-04-01", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 389, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/reel/1915115739119410/", "engagement": 0, "eng_rate": 0.0}, {"title": "This week on the podcast Gary (HVAC Know It All)and Furman break down new trends in the industry lik", "date": "2026-04-01", "platform": ["Instagram"], "ctype": "video", "views": null, "reach": null, "likes": 2, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/reel/DWl81Cojz5p/", "engagement": 2, "eng_rate": null}, {"title": "To all the HVAC owners who keep showing up for their customers and their employees, even when times", "date": "2026-04-02", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 286, "likes": 1, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/reel/977384148081654/", "engagement": 1, "eng_rate": 0.35}, {"title": "To all the HVAC owners who keep showing up for their customers and their employees, even when times", "date": "2026-04-02", "platform": ["Instagram"], "ctype": "video", "views": null, "reach": null, "likes": 11, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/reel/DWocvWBkSAy/", "engagement": 11, "eng_rate": null}, {"title": "If you can, plan. Thinking through your business plan before you take the leap will save you time (a", "date": "2026-04-03", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 443, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/reel/1607545777134478/", "engagement": 0, "eng_rate": 0.0}, {"title": "If you can, plan. Thinking through your business plan before you take the leap will save you time (a", "date": "2026-04-03", "platform": ["Instagram"], "ctype": "video", "views": null, "reach": null, "likes": 2, "comments": 1, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/reel/DWrVLEXkWVq/", "engagement": 3, "eng_rate": null}, {"title": "Surviving shoulder season isn\u2019t for the weak. Or the unprepared.", "date": "2026-04-06", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 64, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/122164325198404081/posts/122160353834404081", "engagement": 0, "eng_rate": 0.0}, {"title": "Surviving shoulder season isn\u2019t for the weak. Or the unprepared.", "date": "2026-04-06", "platform": ["Instagram"], "ctype": "image", "views": null, "reach": null, "likes": 1, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/p/DWy5guUjFyk/", "engagement": 1, "eng_rate": null}, {"title": "If you\u2019ve been thinking about starting your own business, this graphic is a good place to start.  Ge", "date": "2026-04-07", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 50, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/122164325198404081/posts/122160418250404081", "engagement": 0, "eng_rate": 0.0}, {"title": "If you\u2019ve been thinking about starting your own business, this graphic is a good place to start.  Ge", "date": "2026-04-07", "platform": ["Instagram"], "ctype": "image", "views": null, "reach": null, "likes": 1, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/p/DW11yHQET07/", "engagement": 1, "eng_rate": null}, {"title": "Andrew Blair knew he wanted to work at his dad\u2019s HVAC company since he was a kid. He moved up from t", "date": "2026-04-08", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 58, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/reel/4231625370434864/", "engagement": 0, "eng_rate": 0.0}, {"title": "Andrew Blair knew he wanted to work at his dad\u2019s HVAC company since he was a kid. He moved up from t", "date": "2026-04-08", "platform": ["Instagram"], "ctype": "video", "views": null, "reach": null, "likes": 3, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/reel/DW4HVPMFczh/", "engagement": 3, "eng_rate": null}, {"title": "You could be like this guy. Check out our services at the link in bio.", "date": "2026-04-09", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 58, "likes": 2, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/122164325198404081/posts/122160537794404081", "engagement": 2, "eng_rate": 3.45}, {"title": "You could be like this guy. Check out our services at the link in bio.", "date": "2026-04-09", "platform": ["Instagram"], "ctype": "image", "views": null, "reach": null, "likes": 3, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/p/DW6sagwj7sR/", "engagement": 3, "eng_rate": null}, {"title": "The secret to keeping customers calling back? Never leave the job without providing a solution.", "date": "2026-04-10", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 264, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/reel/4293079340954994/", "engagement": 0, "eng_rate": 0.0}, {"title": "The secret to keeping customers calling back? Never leave the job without providing a solution.", "date": "2026-04-10", "platform": ["Instagram"], "ctype": "video", "views": null, "reach": null, "likes": 0, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/reel/DW9oM8Dkkc2/", "engagement": 0, "eng_rate": null}, {"title": "We\u2019ve said it before and we\u2019ll say it again. Your truck wrap should NOT be the first, second, third,", "date": "2026-04-13", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 66, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/122164325198404081/posts/122160762314404081", "engagement": 0, "eng_rate": 0.0}, {"title": "We\u2019ve said it before and we\u2019ll say it again. Your truck wrap should NOT be the first, second, third,", "date": "2026-04-13", "platform": ["Instagram"], "ctype": "image", "views": null, "reach": null, "likes": 3, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/p/DXExY_mGsYw/", "engagement": 3, "eng_rate": null}, {"title": "Even if you\u2019re not ready to start your own HVAC company, you should be paying attention to these det", "date": "2026-04-14", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 321, "likes": 2, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/reel/26556858103954771/", "engagement": 2, "eng_rate": 0.62}, {"title": "Even if you\u2019re not ready to start your own HVAC company, you should be paying attention to these det", "date": "2026-04-14", "platform": ["Instagram"], "ctype": "video", "views": null, "reach": null, "likes": 3, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/reel/DXH_CeBgHuD/", "engagement": 3, "eng_rate": null}, {"title": "Investing in good apprentices can yield real benefits for your HVAC business. Hear how Andrew built", "date": "2026-04-15", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 60, "likes": 1, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/reel/939866018900280/", "engagement": 1, "eng_rate": 1.67}, {"title": "Investing in good apprentices can yield real benefits for your HVAC business. Hear how Andrew built", "date": "2026-04-15", "platform": ["Instagram"], "ctype": "video", "views": null, "reach": null, "likes": 2, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/reel/DXKNQr9groP/", "engagement": 2, "eng_rate": null}, {"title": "long days and even longer nights. Being an HVAC owner isn\u2019t for the weak.", "date": "2026-04-16", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 215, "likes": 1, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/reel/812485565239804/", "engagement": 1, "eng_rate": 0.47}, {"title": "long days and even longer nights. Being an HVAC owner isn\u2019t for the weak.", "date": "2026-04-16", "platform": ["Instagram"], "ctype": "video", "views": null, "reach": null, "likes": 1, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/reel/DXM90DXDzPx/", "engagement": 1, "eng_rate": null}, {"title": "AI is changing the HVAC and Andrew Blair thinks its for the better. And it's only getting easier.  A", "date": "2026-04-17", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 73, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/reel/2171340206948492/", "engagement": 0, "eng_rate": 0.0}, {"title": "AI is changing the HVAC and Andrew Blair thinks its for the better. And it's only getting easier.  A", "date": "2026-04-17", "platform": ["Instagram"], "ctype": "video", "views": null, "reach": null, "likes": 2, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/reel/DXPtiegCuKX/", "engagement": 2, "eng_rate": null}, {"title": "Your wife doesn\u2019t want to \u201clook over your books really quick\u201d after her 9-5 office job. We promise.", "date": "2026-04-20", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 73, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/122164325198404081/posts/122161313234404081", "engagement": 0, "eng_rate": 0.0}, {"title": "Your wife doesn\u2019t want to \u201clook over your books really quick\u201d after her 9-5 office job. We promise.", "date": "2026-04-20", "platform": ["Instagram"], "ctype": "image", "views": null, "reach": null, "likes": 5, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/p/DXXUOdJjo1w/", "engagement": 5, "eng_rate": null}, {"title": "A new episode of HVAC Know It All: Business Edition drops tomorrow. Check it out at the link in bio.", "date": "2026-04-21", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 80, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/122164325198404081/posts/122161397798404081", "engagement": 0, "eng_rate": 0.0}, {"title": "A new episode of HVAC Know It All: Business Edition drops tomorrow. Check it out at the link in bio.", "date": "2026-04-21", "platform": ["Instagram"], "ctype": "image", "views": null, "reach": null, "likes": 2, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/p/DXZ9kY0luHo/", "engagement": 2, "eng_rate": null}, {"title": "Being a husband and wife team isn\u2019t always easy, but if you do it right, it can be a superpower.   L", "date": "2026-04-22", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 480, "likes": 2, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/reel/1585241519250183/", "engagement": 2, "eng_rate": 0.42}, {"title": "Being a husband and wife team isn\u2019t always easy, but if you do it right, it can be a superpower.   L", "date": "2026-04-22", "platform": ["Instagram"], "ctype": "video", "views": null, "reach": null, "likes": 0, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/reel/DXcVQekCWYv/", "engagement": 0, "eng_rate": null}, {"title": "Ready to stop surviving and start scaling? We can help with that.", "date": "2026-04-23", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 63, "likes": 1, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/122164325198404081/posts/122161553438404081", "engagement": 1, "eng_rate": 1.59}, {"title": "Ready to stop surviving and start scaling? We can help with that.", "date": "2026-04-23", "platform": ["Instagram"], "ctype": "image", "views": null, "reach": null, "likes": 1, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/p/DXfMwc3D3FN/", "engagement": 1, "eng_rate": null}, {"title": "Making sure your techs feel heard and respected is one of the most important things you can do for y", "date": "2026-04-24", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 349, "likes": 3, "comments": 0, "shares": 1, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/reel/2157811798352225/", "engagement": 4, "eng_rate": 1.15}, {"title": "Making sure your techs feel heard and respected is one of the most important things you can do for y", "date": "2026-04-24", "platform": ["Instagram"], "ctype": "video", "views": null, "reach": null, "likes": 2, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/reel/DXhbH3YEgLn/", "engagement": 2, "eng_rate": null}, {"title": "Do you remember the last time you got to go right home after the job was finished?", "date": "2026-04-27", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 80, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/122164325198404081/posts/122161785770404081", "engagement": 0, "eng_rate": 0.0}, {"title": "Do you remember the last time you got to go right home after the job was finished?", "date": "2026-04-27", "platform": ["Instagram"], "ctype": "image", "views": null, "reach": null, "likes": 3, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/p/DXpD2fDjDCL/", "engagement": 3, "eng_rate": null}, {"title": "Small HVAC companies can learn to leverage their unique advantages to compete with the larger PE bac", "date": "2026-04-28", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 64, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/122164325198404081/posts/122161851500404081", "engagement": 0, "eng_rate": 0.0}, {"title": "Small HVAC companies can learn to leverage their unique advantages to compete with the larger PE bac", "date": "2026-04-28", "platform": ["Instagram"], "ctype": "image", "views": null, "reach": null, "likes": 1, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/p/DXr5bAQkZ3D/", "engagement": 1, "eng_rate": null}, {"title": "After you\u2019ve built the systems, you have to build the culture. Without it, you don\u2019t have a business", "date": "2026-04-29", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 683, "likes": 4, "comments": 0, "shares": 1, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/reel/944160705256456/", "engagement": 5, "eng_rate": 0.73}, {"title": "After you\u2019ve built the systems, you have to build the culture. Without it, you don\u2019t have a business", "date": "2026-04-29", "platform": ["Instagram"], "ctype": "video", "views": null, "reach": null, "likes": 4, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/reel/DXuHjX3jmdB/", "engagement": 4, "eng_rate": null}, {"title": "No more afternoons running the AC for \u201cfive more minutes\u201d while you try to finish up rebate paperwor", "date": "2026-04-30", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 66, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/122164325198404081/posts/122162013344404081", "engagement": 0, "eng_rate": 0.0}, {"title": "No more afternoons running the AC for \u201cfive more minutes\u201d while you try to finish up rebate paperwor", "date": "2026-04-30", "platform": ["Instagram"], "ctype": "image", "views": null, "reach": null, "likes": 0, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/p/DXxICpknzrO/", "engagement": 0, "eng_rate": null}, {"title": "You don't know what you don't know. Reaching out and getting help from industry vets and business ex", "date": "2026-05-01", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 176, "likes": 3, "comments": 0, "shares": 3, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/reel/841411645676903/", "engagement": 6, "eng_rate": 3.41}, {"title": "You don't know what you don't know. Reaching out and getting help from industry vets and business ex", "date": "2026-05-01", "platform": ["Instagram"], "ctype": "video", "views": null, "reach": null, "likes": 1, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/reel/DXzXUqEDTAw/", "engagement": 1, "eng_rate": null}, {"title": "That stack of invoices in your truck isn\u2019t going to deal with itself.", "date": "2026-05-04", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 62, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/122164325198404081/posts/122162260436404081", "engagement": 0, "eng_rate": 0.0}, {"title": "That stack of invoices in your truck isn\u2019t going to deal with itself.", "date": "2026-05-04", "platform": ["Instagram"], "ctype": "image", "views": null, "reach": null, "likes": 3, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/p/DX7R3SLjUtB/", "engagement": 3, "eng_rate": null}, {"title": "If your hvac business is stalling and you can\u2019t figure out why be sure to check out HVAC Know It All", "date": "2026-05-05", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 56, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/122164325198404081/posts/122162313860404081", "engagement": 0, "eng_rate": 0.0}, {"title": "If your hvac business is stalling and you can\u2019t figure out why be sure to check out HVAC Know It All", "date": "2026-05-05", "platform": ["Instagram"], "ctype": "image", "views": null, "reach": null, "likes": 1, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/p/DX935jVAeow/", "engagement": 1, "eng_rate": null}, {"title": "Social media is a non-negotiable small HVAC businesses that want to grow.   This week on HVAC Know I", "date": "2026-05-06", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 55, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/122164325198404081/posts/122162363156404081", "engagement": 0, "eng_rate": 0.0}, {"title": "Social media is a non-negotiable small HVAC businesses that want to grow.   This week on HVAC Know I", "date": "2026-05-06", "platform": ["Instagram"], "ctype": "image", "views": null, "reach": null, "likes": 1, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/p/DYAUAu4D66f/", "engagement": 1, "eng_rate": null}, {"title": "If you\u2019re not able to pay yourself at least $20 an hour after deducting your expenses you might as w", "date": "2026-05-07", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 1205, "likes": 1, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/reel/1657712512088745/", "engagement": 1, "eng_rate": 0.08}, {"title": "If you\u2019re not able to pay yourself at least $20 an hour after deducting your expenses you might as w", "date": "2026-05-07", "platform": ["Instagram"], "ctype": "video", "views": null, "reach": null, "likes": 1, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/reel/DYDLmRUD7V0/", "engagement": 1, "eng_rate": null}, {"title": "Being a small HVAC business means things can still feel personal. Use that to your advantage on soci", "date": "2026-05-09", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 720, "likes": 1, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/reel/1709563407158845/", "engagement": 1, "eng_rate": 0.14}, {"title": "Being a small HVAC business means things can still feel personal. Use that to your advantage on soci", "date": "2026-05-09", "platform": ["Instagram"], "ctype": "video", "views": null, "reach": null, "likes": 0, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/reel/DYIrYPYjBj8/", "engagement": 0, "eng_rate": null}, {"title": "Wait until July and the game is over.", "date": "2026-05-11", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 53, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/122164325198404081/posts/122162654036404081", "engagement": 0, "eng_rate": 0.0}, {"title": "Wait until July and the game is over.", "date": "2026-05-11", "platform": ["Instagram"], "ctype": "image", "views": null, "reach": null, "likes": 0, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/p/DYNW6kZEU33/", "engagement": 0, "eng_rate": null}, {"title": "Britt\u2019s already making an impact on the WorkHero team but we wanted to take a moment to properly wel", "date": "2026-05-12", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 59, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/122164325198404081/posts/122162701136404081", "engagement": 0, "eng_rate": 0.0}, {"title": "Britt\u2019s already making an impact on the WorkHero team but we wanted to take a moment to properly wel", "date": "2026-05-12", "platform": ["Instagram"], "ctype": "image", "views": null, "reach": null, "likes": 4, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/p/DYPoLvjD5Mo/", "engagement": 4, "eng_rate": null}, {"title": "Post anyway, that\u2019s the only way you\u2019ll see results.   This week on the podcast Furman continues his", "date": "2026-05-13", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 109, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/reel/1510057950562126/", "engagement": 0, "eng_rate": 0.0}, {"title": "Post anyway, that\u2019s the only way you\u2019ll see results.   This week on the podcast Furman continues his", "date": "2026-05-13", "platform": ["Instagram"], "ctype": "video", "views": null, "reach": null, "likes": 3, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/reel/DYSJ7krD1aF/", "engagement": 3, "eng_rate": null}, {"title": "Running a small HVAC business isn\u2019t for the weak but we\u2019re building solutions that help ease the loa", "date": "2026-05-14", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 47, "likes": 1, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/122164325198404081/posts/122162856062404081", "engagement": 1, "eng_rate": 2.13}, {"title": "Running a small HVAC business isn\u2019t for the weak but we\u2019re building solutions that help ease the loa", "date": "2026-05-14", "platform": ["Instagram"], "ctype": "image", "views": null, "reach": null, "likes": 1, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/p/DYU4J4vDZA5/", "engagement": 1, "eng_rate": null}, {"title": "Customers are going to pick the guy they feel like they can trust. Make sure that guy is you.", "date": "2026-05-15", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 312, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/reel/1283337313927995/", "engagement": 0, "eng_rate": 0.0}, {"title": "Customers are going to pick the guy they feel like they can trust. Make sure that guy is you.", "date": "2026-05-15", "platform": ["Instagram"], "ctype": "video", "views": null, "reach": null, "likes": 3, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/reel/DYXsl4zGjG4/", "engagement": 3, "eng_rate": null}, {"title": "Stop being this guy and start taking back control of your business.", "date": "2026-05-18", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 50, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/122164325198404081/posts/122163073646404081", "engagement": 0, "eng_rate": 0.0}, {"title": "Stop being this guy and start taking back control of your business.", "date": "2026-05-18", "platform": ["Instagram"], "ctype": "image", "views": null, "reach": null, "likes": 4, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/p/DYfTO22jnUf/", "engagement": 4, "eng_rate": null}, {"title": "You\u2019re an owner, not an influencer. Stop pretending and start posting content that speaks to your cu", "date": "2026-05-19", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 51, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/122164325198404081/posts/122163118376404081", "engagement": 0, "eng_rate": 0.0}, {"title": "You\u2019re an owner, not an influencer. Stop pretending and start posting content that speaks to your cu", "date": "2026-05-19", "platform": ["Instagram"], "ctype": "image", "views": null, "reach": null, "likes": 4, "comments": 1, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/p/DYhwsgeFfLV/", "engagement": 5, "eng_rate": null}, {"title": "Lost receipts cost time and money, and they\u2019re a distraction on the job site. Making sure your techs", "date": "2026-05-20", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 656, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/reel/973816045235766/", "engagement": 0, "eng_rate": 0.0}, {"title": "Lost receipts cost time and money, and they\u2019re a distraction on the job site. Making sure your techs", "date": "2026-05-20", "platform": ["Instagram"], "ctype": "video", "views": null, "reach": null, "likes": 1, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/reel/DYkgz91DoyS/", "engagement": 1, "eng_rate": null}, {"title": "Welcome to the team Andrew \ud83d\ude80", "date": "2026-05-21", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 47, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/122164325198404081/posts/122163208424404081", "engagement": 0, "eng_rate": 0.0}, {"title": "Welcome to the team Andrew \ud83d\ude80", "date": "2026-05-21", "platform": ["Instagram"], "ctype": "image", "views": null, "reach": null, "likes": 6, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/p/DYmo8dZjt_I/", "engagement": 6, "eng_rate": null}, {"title": "Leave the paperwork to us and get out from behind your desk before it\u2019s too late.", "date": "2026-05-25", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 38, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/122164325198404081/posts/122163424256404081", "engagement": 0, "eng_rate": 0.0}, {"title": "Leave the paperwork to us and get out from behind your desk before it\u2019s too late.", "date": "2026-05-25", "platform": ["Instagram"], "ctype": "image", "views": null, "reach": null, "likes": 3, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/p/DYxPOE3Dc0g/", "engagement": 3, "eng_rate": null}, {"title": "If your business runs on Housecall Pro or you're thinking about it - you need to hear this. Roland L", "date": "2026-05-26", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 577, "likes": 1, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/reel/1551735299994506/", "engagement": 1, "eng_rate": 0.17}, {"title": "If your business runs on Housecall Pro or you're thinking about it - you need to hear this. Roland L", "date": "2026-05-26", "platform": ["Instagram"], "ctype": "video", "views": null, "reach": null, "likes": 4, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/reel/DY0Erysic3J/", "engagement": 4, "eng_rate": null}, {"title": "It\u2019s not every day that you get to chat with industry experts like Roland Ligtenberg, co-founder of", "date": "2026-05-27", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 738, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/reel/1658427375275434/", "engagement": 0, "eng_rate": 0.0}, {"title": "It\u2019s not every day that you get to chat with industry experts like Roland Ligtenberg, co-founder of", "date": "2026-05-27", "platform": ["Instagram"], "ctype": "video", "views": null, "reach": null, "likes": 1, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/reel/DY2rhHzDvWE/", "engagement": 1, "eng_rate": null}, {"title": "When you\u2019re too busy surviving, you miss the customer touch points that keep them coming back.", "date": "2026-05-29", "platform": ["Instagram"], "ctype": "video", "views": null, "reach": null, "likes": 0, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/reel/DY7WtNUDg6r/", "engagement": 0, "eng_rate": null}, {"title": "And then you have to pay the supply house bill and the truck note\u2026", "date": "2026-06-01", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 29, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/122164325198404081/posts/122163799796404081", "engagement": 0, "eng_rate": 0.0}, {"title": "And then you have to pay the supply house bill and the truck note\u2026", "date": "2026-06-01", "platform": ["Instagram"], "ctype": "image", "views": null, "reach": null, "likes": 0, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/p/DZDZsRzINlY/", "engagement": 0, "eng_rate": null}, {"title": "Big one dropping tomorrow. We sat down with @housecallpro  founder Roland Ligtenberg for HVAC Know I", "date": "2026-06-02", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 32, "likes": 1, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/122164325198404081/posts/122163849068404081", "engagement": 1, "eng_rate": 3.12}, {"title": "Big one dropping tomorrow. We sat down with @housecallpro  founder Roland Ligtenberg for HVAC Know I", "date": "2026-06-02", "platform": ["Instagram"], "ctype": "image", "views": null, "reach": null, "likes": 4, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/p/DZFxQM1ICVB/", "engagement": 4, "eng_rate": null}, {"title": "This week on the podcast, @housecallpro founder Roland Ligtenberg breaks down the rise of the repair", "date": "2026-06-03", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 243, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/reel/1283406553534576/", "engagement": 0, "eng_rate": 0.0}, {"title": "This week on the podcast, @housecallpro founder Roland Ligtenberg breaks down the rise of the repair", "date": "2026-06-03", "platform": ["Instagram"], "ctype": "video", "views": null, "reach": null, "likes": 2, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/reel/DZJGZ5alCPl/", "engagement": 2, "eng_rate": null}, {"title": "We\u2019re a team of experts powered by AI. But we\u2019re also still these little guys at heart.", "date": "2026-06-04", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 34, "likes": 1, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/reel/1523643069248167/", "engagement": 1, "eng_rate": 2.94}, {"title": "We\u2019re a team of experts powered by AI. But we\u2019re also still these little guys at heart.", "date": "2026-06-04", "platform": ["Instagram"], "ctype": "video", "views": null, "reach": null, "likes": 5, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/reel/DZKqNsDgHHP/", "engagement": 5, "eng_rate": null}, {"title": "If you aren\u2019t evolving your HVAC operational systems, you\u2019re leaving serious money on the table.", "date": "2026-06-05", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 187, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/reel/927979153609816/", "engagement": 0, "eng_rate": 0.0}, {"title": "If you aren\u2019t evolving your HVAC operational systems, you\u2019re leaving serious money on the table.", "date": "2026-06-05", "platform": ["Instagram"], "ctype": "video", "views": null, "reach": null, "likes": 1, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/reel/DZNWRuLDwHJ/", "engagement": 1, "eng_rate": null}, {"title": "Ready for some beauty rest? We got you covered.", "date": "2026-06-08", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 15, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/122164325198404081/posts/122164219970404081", "engagement": 0, "eng_rate": 0.0}, {"title": "Ready for some beauty rest? We got you covered.", "date": "2026-06-08", "platform": ["Instagram"], "ctype": "image", "views": null, "reach": null, "likes": 0, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/p/DZVVCHwDHD7/", "engagement": 0, "eng_rate": null}, {"title": "Welcome to the repair economy! The quickest way to lose customers is to get called out on an upsell.", "date": "2026-06-09", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 7, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/122164325198404081/posts/122164274180404081", "engagement": 0, "eng_rate": 0.0}, {"title": "Welcome to the repair economy! The quickest way to lose customers is to get called out on an upsell.", "date": "2026-06-09", "platform": ["Instagram"], "ctype": "image", "views": null, "reach": null, "likes": 1, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/p/DZYJDjonBFV/", "engagement": 1, "eng_rate": null}, {"title": "The more options you give them, the higher chance that you\u2019ll seal the deal.   This week on the podc", "date": "2026-06-10", "platform": ["Facebook"], "ctype": "", "views": null, "reach": 3, "likes": 0, "comments": 0, "shares": 0, "followers": null, "new_users": null, "ctr": null, "url": "https://www.facebook.com/reel/1045641644793050/", "engagement": 0, "eng_rate": 0.0}, {"title": "The more options you give them, the higher chance that you\u2019ll seal the deal.   This week on the podc", "date": "2026-06-10", "platform": ["Instagram"], "ctype": "video", "views": null, "reach": null, "likes": 0, "comments": 0, "shares": null, "followers": null, "new_users": null, "ctr": null, "url": "https://www.instagram.com/reel/DZaghPUkvI1/", "engagement": 0, "eng_rate": null}];
+let from=null,to=null,plat='all',sortKey='date',sortDir=-1;
+let charts={};
+
+const PLATS=['LinkedIn','Instagram','Facebook','youtube'];
+const PLAT_LABELS=['LinkedIn','Instagram','Facebook','YouTube'];
+const PLAT_COLORS=['#0077b5','#e1306c','#1877f2','#ff0000'];
+const PLAT_KEYS={'LinkedIn':'pbli2','Instagram':'pbig2','Facebook':'pbfb2','youtube':'pbyt2'};
+
+function switchTab(n,btn){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('panel-'+n).classList.add('active');
+  if(n==='posts') renderPosts();
+}
+
+function toISO(d){return d.toISOString().slice(0,10);}
+function setPreset(days,btn){
+  const to=new Date();to.setHours(0,0,0,0);
+  const from=new Date(to);from.setDate(from.getDate()-days+1);
+  applyRange(toISO(from),toISO(to));
+  document.querySelectorAll('.preset').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function setPresetMonth(offset,btn){
+  const n=new Date(),from=new Date(n.getFullYear(),n.getMonth()+offset,1);
+  const cap=new Date();cap.setHours(0,0,0,0);
+  const toD=new Date(n.getFullYear(),n.getMonth()+offset+1,0);
+  applyRange(toISO(from),toISO(new Date(Math.min(toD,cap))));
+  document.querySelectorAll('.preset').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function applyCustom(){
+  const f=document.getElementById('dateFrom').value,t=document.getElementById('dateTo').value;
+  if(f&&t&&f<=t){applyRange(f,t);document.querySelectorAll('.preset').forEach(b=>b.classList.remove('active'));}
+}
+function applyRange(f,t){
+  from=f;to=t;
+  document.getElementById('dateFrom').value=f;
+  document.getElementById('dateTo').value=t;
+  render();
+}
+function setPlatform(p,btn,cls){
+  plat=p;
+  document.querySelectorAll('.plat-btn').forEach(b=>b.className='plat-btn');
+  btn.className='plat-btn '+cls;
+  render();
+}
+
+function filter(){
+  return RAW.filter(p=>p.date>=from&&p.date<=to&&(plat==='all'||(p.platform||[]).includes(plat)));
+}
+function sum(arr){return arr.reduce((s,v)=>s+(v||0),0);}
+function avg(arr){const v=arr.filter(x=>x!=null);return v.length?v.reduce((s,x)=>s+x,0)/v.length:null;}
+function fmt(v,dec=0){
+  if(v==null||v===undefined)return'<span class="na">—</span>';
+  if(v>=1e6)return(v/1e6).toFixed(1)+'M';
+  if(v>=1e3)return(v/1e3).toFixed(1)+'k';
+  return v.toFixed(dec);
+}
+function fmtP(v){return v==null?'<span class="na">—</span>':v.toFixed(1)+'%';}
+
+function render(){
+  const posts=filter();
+  const tReach=sum(posts.map(p=>p.reach));
+  const tViews=sum(posts.map(p=>p.views));
+  const tEng=sum(posts.map(p=>p.engagement));
+  const tLikes=sum(posts.map(p=>p.likes));
+  const aEng=avg(posts.map(p=>p.eng_rate));
+  const n=posts.length;
+
+  document.getElementById('kpiReach').innerHTML=fmt(tReach||null);
+  document.getElementById('kpiReachSub').textContent=n+' posts';
+  document.getElementById('kpiViews').innerHTML=fmt(tViews||null);
+  document.getElementById('kpiViewsSub').textContent='';
+  document.getElementById('kpiEng').innerHTML=fmt(tEng||null);
+  document.getElementById('kpiEngRate').innerHTML=aEng!=null?fmtP(aEng)+' avg':'';
+  document.getElementById('kpiPosts').textContent=n;
+  document.getElementById('kpiLikes').innerHTML=fmt(tLikes||null);
+
+  // Top platform
+  const byP={};
+  posts.forEach(p=>{(p.platform||[]).forEach(pl=>{
+    if(!byP[pl])byP[pl]={reach:0,posts:0,eng:0};
+    byP[pl].reach+=p.reach||0;byP[pl].posts++;byP[pl].eng+=p.engagement||0;
+  })});
+  const top=Object.entries(byP).sort((a,b)=>b[1].reach-a[1].reach)[0];
+  if(top){
+    document.getElementById('statPlatName').textContent=top[0]==='youtube'?'YouTube':top[0];
+    document.getElementById('statBig').innerHTML=fmt(top[1].reach)+' reach';
+    document.getElementById('statSub').textContent=top[1].posts+' posts · '+fmt(top[1].eng)+' engagements';
+  }else{
+    document.getElementById('statPlatName').textContent='No data';
+    document.getElementById('statBig').innerHTML='';
+    document.getElementById('statSub').textContent='';
+  }
+
+  buildTrends(posts);
+  buildPlatChart(byP);
+
+  // Platform table
+  let ptHTML='';
+  PLATS.forEach(pl=>{
+    const pp=posts.filter(p=>(p.platform||[]).includes(pl));
+    if(!pp.length)return;
+    const r=sum(pp.map(p=>p.reach)),v=sum(pp.map(p=>p.views)),
+          l=sum(pp.map(p=>p.likes)),c=sum(pp.map(p=>p.comments)),
+          s=sum(pp.map(p=>p.shares)),e=l+c+s,
+          er=r>0?e/r*100:null;
+    const label=pl==='youtube'?'YouTube':pl;
+    const bk=PLAT_KEYS[pl]||'';
+    ptHTML+=`<tr>
+      <td><span class="pb ${bk}">${label.slice(0,2).toUpperCase()}</span> ${label}</td>
+      <td class="r">${pp.length}</td><td class="r">${fmt(r||null)}</td>
+      <td class="r">${fmt(v||null)}</td><td class="r">${fmt(l||null)}</td>
+      <td class="r">${fmt(c||null)}</td><td class="r">${fmt(s||null)}</td>
+      <td class="r ev">${fmt(e||null)}</td><td class="r">${fmtP(er)}</td>
+    </tr>`;
+  });
+  document.getElementById('platTable').innerHTML=ptHTML||'<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px">No data</td></tr>';
+
+  // Content type table
+  const byC={};
+  posts.forEach(p=>{
+    const k=p.ctype||'(none)';
+    if(!byC[k])byC[k]={posts:[],reach:[],views:[],eng:[],er:[]};
+    byC[k].posts.push(p);
+    if(p.reach!=null)byC[k].reach.push(p.reach);
+    if(p.views!=null)byC[k].views.push(p.views);
+    byC[k].eng.push(p.engagement);
+    if(p.eng_rate!=null)byC[k].er.push(p.eng_rate);
+  });
+  const sortedC=Object.entries(byC).sort((a,b)=>(avg(b[1].reach)||0)-(avg(a[1].reach)||0));
+  let ctHTML='';
+  sortedC.forEach(([ct,d])=>{
+    ctHTML+=`<tr>
+      <td><span class="ct">${ct}</span></td>
+      <td class="r">${d.posts.length}</td>
+      <td class="r">${fmt(avg(d.reach))}</td>
+      <td class="r">${fmt(avg(d.views))}</td>
+      <td class="r ev">${fmt(avg(d.eng))}</td>
+      <td class="r">${fmtP(avg(d.er))}</td>
+    </tr>`;
+  });
+  document.getElementById('ctypeTable').innerHTML=ctHTML||'<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">No data</td></tr>';
+
+  if(document.getElementById('panel-posts').classList.contains('active'))renderPosts();
+}
+
+function buildTrends(posts){
+  const wb={};
+  posts.forEach(p=>{
+    const d=new Date(p.date+'T00:00:00'),day=d.getDay();
+    const mon=new Date(d);mon.setDate(d.getDate()-(day===0?6:day-1));
+    const wk=toISO(mon);
+    if(!wb[wk])wb[wk]={reach:0,views:0,eng:0,posts:0};
+    wb[wk].reach+=p.reach||0;wb[wk].views+=p.views||0;
+    wb[wk].eng+=p.engagement||0;wb[wk].posts++;
+  });
+  const wks=Object.keys(wb).sort(),labels=wks.map(w=>w.slice(5));
+  const opts={responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom',labels:{font:{size:11}}}},
+    scales:{y:{ticks:{callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v}},x:{ticks:{font:{size:10},maxTicksLimit:14}}}};
+  const barOpts={responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom',labels:{font:{size:11}}}},
+    scales:{x:{ticks:{font:{size:10},maxTicksLimit:14}}}};
+
+  ['reachChart','engChart','freqChart'].forEach(id=>{
+    if(charts[id])charts[id].destroy();
+  });
+  charts.reachChart=new Chart(document.getElementById('reachChart').getContext('2d'),{
+    type:'line',data:{labels,datasets:[
+      {label:'Reach',data:wks.map(w=>wb[w].reach),borderColor:'#2563eb',backgroundColor:'rgba(37,99,235,.08)',fill:true,tension:.3,pointRadius:3},
+      {label:'Views',data:wks.map(w=>wb[w].views),borderColor:'#7c3aed',backgroundColor:'rgba(124,58,237,.05)',fill:true,tension:.3,pointRadius:3},
+    ]},options:opts
+  });
+  charts.engChart=new Chart(document.getElementById('engChart').getContext('2d'),{
+    type:'bar',data:{labels,datasets:[{label:'Engagement',data:wks.map(w=>wb[w].eng),backgroundColor:'rgba(124,58,237,.7)'}]},options:barOpts
+  });
+  charts.freqChart=new Chart(document.getElementById('freqChart').getContext('2d'),{
+    type:'bar',data:{labels,datasets:[{label:'Posts',data:wks.map(w=>wb[w].posts),backgroundColor:'rgba(37,99,235,.6)'}]},options:barOpts
+  });
+}
+
+function buildPlatChart(byP){
+  const data=PLATS.map(pl=>byP[pl]?.reach||0);
+  if(charts.platChart)charts.platChart.destroy();
+  charts.platChart=new Chart(document.getElementById('platChart').getContext('2d'),{
+    type:'doughnut',
+    data:{labels:PLAT_LABELS,datasets:[{data,backgroundColor:PLAT_COLORS,borderWidth:2,borderColor:'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{font:{size:11},padding:8}},
+        tooltip:{callbacks:{label:ctx=>' '+ctx.label+': '+fmt(ctx.raw)+' reach'}}}
+    }
+  });
+}
+
+function showCtab(type,btn){
+  document.querySelectorAll('.ctab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  [['reach','cw-reach'],['eng','cw-eng'],['freq','cw-freq']].forEach(([t,id])=>{
+    document.getElementById(id).style.display=type===t?'':'none';
+  });
+}
+
+function renderPosts(){
+  const posts=filter();
+  document.getElementById('postsCount').textContent=`(${posts.length} posts)`;
+  const sorted=[...posts].sort((a,b)=>{
+    const av=a[sortKey]??(sortDir===1?Infinity:-Infinity);
+    const bv=b[sortKey]??(sortDir===1?Infinity:-Infinity);
+    return av<bv?sortDir:av>bv?-sortDir:0;
+  });
+  let html='';
+  sorted.forEach(p=>{
+    const badges=(p.platform||[]).map(pl=>{
+      const k=PLAT_KEYS[pl]||'';
+      const lbl=pl==='youtube'?'YT':pl.slice(0,2).toUpperCase();
+      return `<span class="pb ${k}">${lbl}</span>`;
+    }).join('');
+    const link=p.url?`<a href="${p.url}" target="_blank" style="color:var(--blue);font-size:11px">→</a>`:'<span class="na">—</span>';
+    html+=`<tr>
+      <td style="white-space:nowrap">${p.date}</td>
+      <td class="td-t" title="${p.title}">${p.title}</td>
+      <td style="white-space:nowrap">${badges||'<span class="na">—</span>'}</td>
+      <td><span class="ct">${p.ctype||'—'}</span></td>
+      <td class="r">${fmt(p.reach)}</td><td class="r">${fmt(p.views)}</td>
+      <td class="r">${fmt(p.likes)}</td><td class="r">${fmt(p.comments)}</td>
+      <td class="r">${fmt(p.shares)}</td>
+      <td class="r ev">${fmt(p.engagement)}</td>
+      <td class="r">${fmtP(p.eng_rate)}</td>
+      <td class="r">${fmtP(p.ctr)}</td>
+      <td>${link}</td>
+    </tr>`;
+  });
+  document.getElementById('postsBody').innerHTML=html||'<tr><td colspan="13" style="text-align:center;color:var(--muted);padding:24px">No posts in this range</td></tr>';
+}
+
+function sortPosts(key){
+  sortKey===key?sortDir=-sortDir:(sortKey=key,sortDir=-1);
+  renderPosts();
+}
+
+(function(){
+  const to=new Date();to.setHours(0,0,0,0);
+  const from=new Date(to);from.setDate(from.getDate()-29);
+  applyRange(toISO(from),toISO(to));
+})();
+</script>
+</body>
+</html>
