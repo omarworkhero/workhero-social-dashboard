@@ -142,37 +142,32 @@ def fetch_instagram():
         print(f"  {len(media)} posts in range — fetching insights…")
         result = []
         for m in media:
-            mtype   = m.get("media_type", "IMAGE")
-            metrics = "impressions,reach,saved"
-            if mtype in ("VIDEO", "REEL"):
-                metrics += ",video_views"
+            mtype = m.get("media_type", "IMAGE")
 
-            reach = impressions = saves = views = None
+            reach = saves = total_interactions = None
             ins_r = requests.get(
-                f"https://graph.facebook.com/v19.0/{m['id']}/insights",
-                params={"metric": metrics, "access_token": token}, timeout=15)
+                f"https://graph.facebook.com/v22.0/{m['id']}/insights",
+                params={"metric": "reach,saved,total_interactions", "access_token": token}, timeout=15)
             if ins_r.status_code == 200:
                 for d in ins_r.json().get("data", []):
                     name = d.get("name")
-                    # API returns either 'value' directly or in 'values[0].value'
-                    val = d.get("value")
+                    val  = d.get("value")
                     if val is None and d.get("values"):
                         val = d["values"][0].get("value")
-                    if name == "reach":        reach       = val
-                    if name == "impressions":  impressions = val
-                    if name == "saved":        saves       = val
-                    if name == "video_views":  views       = val
+                    if name == "reach":               reach               = val
+                    if name == "saved":               saves               = val
+                    if name == "total_interactions":  total_interactions  = val
 
             likes = m.get("like_count")    or 0
             cmts  = m.get("comments_count") or 0
-            eng   = likes + cmts + (saves or 0)
+            eng   = total_interactions or (likes + cmts + (saves or 0))
             result.append({
                 "title":    ((m.get("caption") or "Instagram Post")[:100]
                              .replace("\n", " ").strip()),
                 "date":     (m.get("timestamp") or "")[:10],
                 "platform": ["Instagram"],
                 "ctype":    mtype.lower(),
-                "views":    views or impressions,
+                "views":    reach,
                 "reach":    reach,
                 "likes":    likes,
                 "comments": cmts,
