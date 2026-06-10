@@ -32,25 +32,7 @@ jobs:
           FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           DASHBOARD_PASSWORD: ${{ secrets.DASHBOARD_PASSWORD }}
-        run: |
-          python3 -c "
-import json, os
-cfg = {
-  "lookback_days": 90,
-  "dashboard_password": os.environ["DASHBOARD_PASSWORD"],
-  "facebook": {
-    "page_access_token": os.environ["FB_PAGE_TOKEN"],
-    "page_id": os.environ["FB_PAGE_ID"]
-  },
-  "instagram": {
-    "page_access_token": os.environ["FB_PAGE_TOKEN"],
-    "ig_user_id": os.environ["IG_USER_ID"]
-  },
-  "youtube": {"api_key": "", "channel_id": ""},
-  "linkedin": {"access_token": "", "company_id": ""}
-}
-open("social_config.json", "w").write(json.dumps(cfg))
-"
+        run: python3 write_config.py
 
       - name: Generate dashboard
         run: python3 generate_social_dashboard.py
