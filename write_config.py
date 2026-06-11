@@ -11,7 +11,7 @@ cfg = {
         "page_access_token": os.environ["FB_PAGE_TOKEN"],
         "ig_user_id": os.environ["IG_USER_ID"]
     },
-    "youtube": {"api_key": "", "channel_id": ""},
+    "youtube": {"api_key": os.environ.get("YT_API_KEY",""), "channel_id": os.environ.get("YT_CHANNEL_ID","")},
     "linkedin": {"access_token": "", "company_id": ""}
 }
 
