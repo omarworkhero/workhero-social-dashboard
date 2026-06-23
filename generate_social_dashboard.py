@@ -50,7 +50,7 @@ def fetch_facebook():
             }
             if after:
                 params["after"] = after
-            r = requests.get(f"https://graph.facebook.com/v19.0/{page_id}/posts",
+            r = requests.get(f"https://graph.facebook.com/v22.0/{page_id}/posts",
                              params=params, timeout=30)
             if r.status_code != 200:
                 err = r.json().get("error", {}).get("message", r.text[:120])
@@ -62,23 +62,39 @@ def fetch_facebook():
             if not after or not data.get("paging", {}).get("next"):
                 break
 
-        # Batch-fetch per-post reach (post_impressions_unique) in groups of 50
+        # Batch-fetch per-post reach in groups of 50.
+        # Tries post_impressions_unique first; falls back to post_impressions.
         print(f"  {len(posts)} posts found — fetching reach data…")
         reach_map = {}
-        for i in range(0, len(posts), 50):
-            chunk = posts[i:i+50]
-            batch = [{"method": "GET",
-                      "relative_url": f"{p['id']}/insights?metric=post_impressions_unique&period=lifetime"}
-                     for p in chunk]
-            rb = requests.post("https://graph.facebook.com/v19.0",
-                               params={"access_token": token},
-                               json={"batch": batch}, timeout=30)
-            if rb.status_code == 200:
-                for j, item in enumerate(rb.json()):
+        first_err = None
+        for metric in ("post_impressions_unique", "post_impressions"):
+            reach_map = {}
+            for i in range(0, len(posts), 50):
+                chunk = posts[i:i+50]
+                batch = [{"method": "GET",
+                          "relative_url": f"{p['id']}/insights?metric={metric}&period=lifetime"}
+                         for p in chunk]
+                rb = requests.post("https://graph.facebook.com/v22.0",
+                                   params={"access_token": token},
+                                   json={"batch": batch}, timeout=30)
+                if rb.status_code != 200:
+                    print(f"  ⚠  FB insights batch HTTP {rb.status_code}: {rb.text[:120]}")
+                    break
+                for j, item in enumerate(rb.json() or []):
                     if item and item.get("code") == 200:
                         body = json.loads(item.get("body", "{}"))
                         vals = (body.get("data") or [{}])[0].get("values") or []
-                        reach_map[chunk[j]["id"]] = vals[0].get("value") if vals else None
+                        v = vals[0].get("value") if vals else None
+                        if v is not None:
+                            reach_map[chunk[j]["id"]] = v
+                    elif item and item.get("code") != 200 and first_err is None:
+                        body = json.loads(item.get("body", "{}"))
+                        first_err = body.get("error", {}).get("message", f"code {item.get('code')}")
+            if reach_map:
+                print(f"  reach data: {len(reach_map)}/{len(posts)} posts via {metric}")
+                break
+        if not reach_map:
+            print(f"  ⚠  reach unavailable ({first_err or 'no values returned'}) — engagement shown without reach")
 
         result = []
         for p in posts:
