@@ -763,11 +763,12 @@ function render(){{
     if(!byP[pl])byP[pl]={{reach:0,posts:0,eng:0}};
     byP[pl].reach+=p.reach||0;byP[pl].posts++;byP[pl].eng+=p.engagement||0;
   }})}});
-  const top=Object.entries(byP).sort((a,b)=>b[1].reach-a[1].reach)[0];
+  const top=Object.entries(byP).sort((a,b)=>(b[1].reach||b[1].eng)-(a[1].reach||a[1].eng))[0];
   if(top){{
     document.getElementById('statPlatName').textContent=top[0]==='youtube'?'YouTube':top[0];
-    document.getElementById('statBig').innerHTML=fmt(top[1].reach)+' reach';
-    document.getElementById('statSub').textContent=top[1].posts+' posts · '+fmt(top[1].eng)+' engagements';
+    const hasReach=top[1].reach>0;
+    document.getElementById('statBig').innerHTML=hasReach?fmt(top[1].reach)+' reach':fmt(top[1].eng)+' engagements';
+    document.getElementById('statSub').textContent=top[1].posts+' posts'+(hasReach?' · '+fmt(top[1].eng)+' engagements':'');
   }}else{{
     document.getElementById('statPlatName').textContent='No data';
     document.getElementById('statBig').innerHTML='';
@@ -777,8 +778,8 @@ function render(){{
   buildTrends(posts);
   buildPlatChart(byP);
 
-  // Platform table
-  let ptHTML='';
+  // Platform table — sorted by reach (or engagement when reach unavailable)
+  let ptRows=[];
   PLATS.forEach(pl=>{{
     const pp=posts.filter(p=>(p.platform||[]).includes(pl));
     if(!pp.length)return;
@@ -786,11 +787,17 @@ function render(){{
           l=sum(pp.map(p=>p.likes)),c=sum(pp.map(p=>p.comments)),
           s=sum(pp.map(p=>p.shares)),e=l+c+s,
           er=r>0?e/r*100:null;
+    ptRows.push({{pl,pp,r,v,l,c,s,e,er}});
+  }});
+  ptRows.sort((a,b)=>(b.r||b.e)-(a.r||a.e));
+  let ptHTML='';
+  ptRows.forEach(({{'pl':pl,'pp':pp,'r':r,'v':v,'l':l,'c':c,'s':s,'e':e,'er':er}})=>{{
     const label=pl==='youtube'?'YouTube':pl;
     const bk=PLAT_KEYS[pl]||'';
+    const reachCell=r>0?fmt(r):'<span class="na" title="reach data unavailable">—</span>';
     ptHTML+=`<tr>
       <td><span class="pb ${{bk}}">${{label.slice(0,2).toUpperCase()}}</span> ${{label}}</td>
-      <td class="r">${{pp.length}}</td><td class="r">${{fmt(r||null)}}</td>
+      <td class="r">${{pp.length}}</td><td class="r">${{reachCell}}</td>
       <td class="r">${{fmt(v||null)}}</td><td class="r">${{fmt(l||null)}}</td>
       <td class="r">${{fmt(c||null)}}</td><td class="r">${{fmt(s||null)}}</td>
       <td class="r ev">${{fmt(e||null)}}</td><td class="r">${{fmtP(er)}}</td>
@@ -862,14 +869,25 @@ function buildTrends(posts){{
 }}
 
 function buildPlatChart(byP){{
-  const data=PLATS.map(pl=>byP[pl]?.reach||0);
+  // For platforms with 0 reach but positive engagement, use engagement so they remain visible.
+  const anyReach=PLATS.some(pl=>(byP[pl]?.reach||0)>0);
+  const data=PLATS.map(pl=>{{
+    if(!byP[pl])return 0;
+    const r=byP[pl].reach||0,e=byP[pl].eng||0;
+    return r>0?r:(anyReach?0:e);
+  }});
+  const allEngOnly=anyReach&&PLATS.every(pl=>!byP[pl]||(byP[pl].reach||0)===0);
   if(charts.platChart)charts.platChart.destroy();
   charts.platChart=new Chart(document.getElementById('platChart').getContext('2d'),{{
     type:'doughnut',
     data:{{labels:PLAT_LABELS,datasets:[{{data,backgroundColor:PLAT_COLORS,borderWidth:2,borderColor:'#fff'}}]}},
     options:{{responsive:true,maintainAspectRatio:false,
       plugins:{{legend:{{position:'bottom',labels:{{font:{{size:11}},padding:8}}}},
-        tooltip:{{callbacks:{{label:ctx=>' '+ctx.label+': '+fmt(ctx.raw)+' reach'}}}}}}
+        tooltip:{{callbacks:{{label:ctx=>{{
+          const pl=PLATS[ctx.dataIndex],r=(byP[pl]?.reach||0),e=(byP[pl]?.eng||0);
+          return r>0?' '+ctx.label+': '+fmt(r)+' reach':' '+ctx.label+': '+fmt(e)+' engagements';
+        }}}}}}
+      }}
     }}
   }});
 }}
