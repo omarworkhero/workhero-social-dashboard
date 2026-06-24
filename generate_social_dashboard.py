@@ -62,19 +62,21 @@ def fetch_facebook():
             if not after or not data.get("paging", {}).get("next"):
                 break
 
-        # Batch-fetch per-post reach in groups of 50.
-        # Tries post_impressions_unique first; falls back to post_impressions.
-        print(f"  {len(posts)} posts found — fetching reach data…")
+        # Batch-fetch per-post views/reach in groups of 50.
+        # post_impressions_unique/post_impressions deprecated by Meta for many pages (#100).
+        # Falls back to post_video_views (works for reels) then post_clicks.
+        print(f"  {len(posts)} posts found — fetching view/reach data…")
         reach_map = {}
-        first_err = None
-        for metric in ("post_impressions_unique", "post_impressions"):
+        first_err  = None
+        for metric in ("post_impressions_unique", "post_impressions",
+                       "post_video_views", "post_clicks"):
             reach_map = {}
             for i in range(0, len(posts), 50):
                 chunk = posts[i:i+50]
                 batch = [{"method": "GET",
                           "relative_url": f"{p['id']}/insights?metric={metric}&period=lifetime"}
                          for p in chunk]
-                rb = requests.post("https://graph.facebook.com/v22.0",
+                rb = requests.post("https://graph.facebook.com/v25.0",
                                    params={"access_token": token},
                                    json={"batch": batch}, timeout=30)
                 if rb.status_code != 200:
@@ -91,10 +93,10 @@ def fetch_facebook():
                         body = json.loads(item.get("body", "{}"))
                         first_err = body.get("error", {}).get("message", f"code {item.get('code')}")
             if reach_map:
-                print(f"  reach data: {len(reach_map)}/{len(posts)} posts via {metric}")
+                print(f"  view data: {len(reach_map)}/{len(posts)} posts via {metric}")
                 break
         if not reach_map:
-            print(f"  ⚠  reach unavailable ({first_err or 'no values returned'}) — engagement shown without reach")
+            print(f"  ⚠  view data unavailable ({first_err or 'no values returned'}) — engagement only")
 
         result = []
         for p in posts:
@@ -870,13 +872,11 @@ function buildTrends(posts){{
 
 function buildPlatChart(byP){{
   // For platforms with 0 reach but positive engagement, use engagement so they remain visible.
-  const anyReach=PLATS.some(pl=>(byP[pl]?.reach||0)>0);
+  // Platforms with reach → show reach. Platforms with 0 reach → show engagement so they remain visible.
   const data=PLATS.map(pl=>{{
     if(!byP[pl])return 0;
-    const r=byP[pl].reach||0,e=byP[pl].eng||0;
-    return r>0?r:(anyReach?0:e);
+    return byP[pl].reach||byP[pl].eng||0;
   }});
-  const allEngOnly=anyReach&&PLATS.every(pl=>!byP[pl]||(byP[pl].reach||0)===0);
   if(charts.platChart)charts.platChart.destroy();
   charts.platChart=new Chart(document.getElementById('platChart').getContext('2d'),{{
     type:'doughnut',
