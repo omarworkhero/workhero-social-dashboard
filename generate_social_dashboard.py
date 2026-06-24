@@ -38,9 +38,18 @@ def fetch_facebook():
     token   = fb_cfg.get("page_access_token", "").strip()
     page_id = fb_cfg.get("page_id", "").strip()
     if not token or not page_id:
-        return [], "not_configured"
+        return [], "not_configured", None
     print("→ Facebook: fetching posts…")
     try:
+        # Fetch current page follower count
+        fb_followers = None
+        ch_r = requests.get(f"https://graph.facebook.com/v25.0/{page_id}",
+                            params={"fields": "followers_count", "access_token": token}, timeout=15)
+        if ch_r.status_code == 200:
+            fb_followers = ch_r.json().get("followers_count")
+            if fb_followers is not None:
+                print(f"  Page followers: {fb_followers:,}")
+
         posts, after = [], None
         while True:
             params = {
@@ -55,7 +64,7 @@ def fetch_facebook():
             if r.status_code != 200:
                 err = r.json().get("error", {}).get("message", r.text[:120])
                 print(f"  ⚠  Facebook: {err}")
-                return [], "error"
+                return [], "error", None
             data = r.json()
             posts.extend(data.get("data", []))
             after = data.get("paging", {}).get("cursors", {}).get("after")
@@ -116,25 +125,35 @@ def fetch_facebook():
                 "likes":    likes,
                 "comments": cmts,
                 "shares":   shrs,
-                "followers": None, "new_users": None, "ctr": None,
+                "saves":    None,
+                "followers": fb_followers, "new_users": None, "ctr": None,
                 "url":      p.get("permalink_url", ""),
                 "engagement": eng,
                 "eng_rate": None,    # no reach → can't compute rate
             })
         print(f"  ✓ {len(result)} Facebook posts")
-        return result, "ok"
+        return result, "ok", fb_followers
     except Exception as e:
         print(f"  ✗ Facebook exception: {e}")
-        return [], "error"
+        return [], "error", None
 
 # ─── Instagram ───────────────────────────────────────────────────────────────
 def fetch_instagram():
     token = ig_cfg.get("page_access_token", "").strip()
     ig_id = ig_cfg.get("ig_user_id", "").strip()
     if not token or not ig_id:
-        return [], "not_configured"
+        return [], "not_configured", None
     print("→ Instagram: fetching media…")
     try:
+        # Fetch current follower count
+        ig_followers = None
+        fl_r = requests.get(f"https://graph.facebook.com/v22.0/{ig_id}",
+                            params={"fields": "followers_count", "access_token": token}, timeout=15)
+        if fl_r.status_code == 200:
+            ig_followers = fl_r.json().get("followers_count")
+            if ig_followers is not None:
+                print(f"  IG followers: {ig_followers:,}")
+
         media, after = [], None
         while True:
             params = {
@@ -148,7 +167,7 @@ def fetch_instagram():
             if r.status_code != 200:
                 err = r.json().get("error", {}).get("message", r.text[:120])
                 print(f"  ⚠  Instagram: {err}")
-                return [], "error"
+                return [], "error", None
             data = r.json()
             for m in data.get("data", []):
                 if (m.get("timestamp") or "")[:10] >= START_STR:
@@ -189,26 +208,39 @@ def fetch_instagram():
                 "reach":    reach,
                 "likes":    likes,
                 "comments": cmts,
-                "shares":   saves,
-                "followers": None, "new_users": None, "ctr": None,
+                "shares":   None,   # Instagram share count not exposed via this API
+                "saves":    saves,  # bookmarks/saves from IG insights
+                "followers": ig_followers, "new_users": None, "ctr": None,
                 "url":      m.get("permalink", ""),
                 "engagement": eng,
                 "eng_rate": round(eng / reach * 100, 2) if reach and reach > 0 else None,
             })
         print(f"  ✓ {len(result)} Instagram posts")
-        return result, "ok"
+        return result, "ok", ig_followers
     except Exception as e:
         print(f"  ✗ Instagram exception: {e}")
-        return [], "error"
+        return [], "error", None
 
 # ─── YouTube ─────────────────────────────────────────────────────────────────
 def fetch_youtube():
     api_key    = yt_cfg.get("api_key", "").strip()
     channel_id = yt_cfg.get("channel_id", "").strip()
     if not api_key or not channel_id:
-        return [], "not_configured"
+        return [], "not_configured", None
     print("→ YouTube: fetching videos…")
     try:
+        # Fetch subscriber count from channel stats
+        yt_followers = None
+        ch_r = requests.get("https://www.googleapis.com/youtube/v3/channels",
+                            params={"part": "statistics", "id": channel_id, "key": api_key}, timeout=15)
+        if ch_r.status_code == 200:
+            ch_items = ch_r.json().get("items", [])
+            if ch_items:
+                raw_sub = ch_items[0].get("statistics", {}).get("subscriberCount")
+                if raw_sub:
+                    yt_followers = int(raw_sub)
+                    print(f"  Subscribers: {yt_followers:,}")
+
         video_ids, next_token = [], None
         while True:
             params = {
@@ -224,7 +256,7 @@ def fetch_youtube():
             if r.status_code != 200:
                 err = r.json().get("error", {}).get("message", r.text[:120])
                 print(f"  ⚠  YouTube search: {err}")
-                return [], "error"
+                return [], "error", None
             data = r.json()
             video_ids.extend(item["id"]["videoId"] for item in data.get("items", []))
             next_token = data.get("nextPageToken")
@@ -233,7 +265,7 @@ def fetch_youtube():
 
         if not video_ids:
             print("  No videos in date range")
-            return [], "ok"
+            return [], "ok", yt_followers
 
         print(f"  {len(video_ids)} videos — fetching stats…")
         result = []
@@ -261,24 +293,25 @@ def fetch_youtube():
                     "likes":    likes,
                     "comments": cmts,
                     "shares":   None,
-                    "followers": None, "new_users": None,
+                    "saves":    None,
+                    "followers": yt_followers, "new_users": None,
                     "ctr":      None,
                     "url":      f"https://www.youtube.com/watch?v={item['id']}",
                     "engagement": eng,
                     "eng_rate": round(eng / views * 100, 2) if views > 0 else None,
                 })
         print(f"  ✓ {len(result)} YouTube videos")
-        return result, "ok"
+        return result, "ok", yt_followers
     except Exception as e:
         print(f"  ✗ YouTube exception: {e}")
-        return [], "error"
+        return [], "error", None
 
 # ─── LinkedIn ────────────────────────────────────────────────────────────────
 def fetch_linkedin():
     token      = li_cfg.get("access_token", "").strip()
     company_id = str(li_cfg.get("company_id", "")).strip()
     if not token or not company_id:
-        return [], "not_configured"
+        return [], "not_configured", None
     print("→ LinkedIn: fetching posts…")
     try:
         org_urn = f"urn:li:organization:{company_id}"
@@ -299,7 +332,7 @@ def fetch_linkedin():
             )
             if r.status_code != 200:
                 print(f"  ⚠  LinkedIn ({r.status_code}): {r.text[:200]}")
-                return [], "error"
+                return [], "error", None
             elements = r.json().get("elements", [])
             posts.extend(elements)
             if len(elements) < 100:
@@ -312,7 +345,7 @@ def fetch_linkedin():
 
         if not posts:
             print("  No posts in range")
-            return [], "ok"
+            return [], "ok", None
 
         print(f"  {len(posts)} posts — fetching analytics…")
 
@@ -357,6 +390,7 @@ def fetch_linkedin():
                 "likes":    likes,
                 "comments": cmts,
                 "shares":   shrs,
+                "saves":    None,
                 "followers": None, "new_users": None,
                 "ctr":      round(clks / imp * 100, 2) if imp > 0 else None,
                 "url":      "",
@@ -364,16 +398,16 @@ def fetch_linkedin():
                 "eng_rate": round(eng / imp * 100, 2) if imp > 0 else None,
             })
         print(f"  ✓ {len(result)} LinkedIn posts")
-        return result, "ok"
+        return result, "ok", None
     except Exception as e:
         print(f"  ✗ LinkedIn exception: {e}")
-        return [], "error"
+        return [], "error", None
 
 # ─── Fetch all platforms ──────────────────────────────────────────────────────
-fb_posts, fb_status = fetch_facebook()
-ig_posts, ig_status = fetch_instagram()
-yt_posts, yt_status = fetch_youtube()
-li_posts, li_status = fetch_linkedin()
+fb_posts, fb_status, fb_followers = fetch_facebook()
+ig_posts, ig_status, ig_followers = fetch_instagram()
+yt_posts, yt_status, yt_followers = fetch_youtube()
+li_posts, li_status, li_followers = fetch_linkedin()
 
 raw_posts = sorted(
     fb_posts + ig_posts + yt_posts + li_posts,
@@ -382,6 +416,13 @@ raw_posts = sorted(
 
 generated   = datetime.now().strftime("%Y-%m-%d %H:%M")
 total_posts = len(raw_posts)
+
+followers_by_platform = {
+    "Facebook":  fb_followers,
+    "Instagram": ig_followers,
+    "youtube":   yt_followers,
+}
+followers_json = json.dumps(followers_by_platform)
 
 print(f"\n  Total posts loaded: {total_posts}")
 
@@ -613,6 +654,29 @@ function checkPw(){{
     <div class="kpi-card"><div class="kpi-label">Total Likes</div><div class="kpi-value" style="color:var(--green)" id="kpiLikes">—</div><div class="kpi-sub" id="kpiLikesSub"></div></div>
   </div>
 
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-header">Platform Followers</div>
+    <div class="card-body" style="padding:12px 16px">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+        <div style="text-align:center;padding:10px 0">
+          <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--fb);margin-bottom:4px">Facebook</div>
+          <div style="font-size:22px;font-weight:700" id="kpiFbFollowers">—</div>
+          <div style="font-size:11px;color:var(--muted)">Page Followers</div>
+        </div>
+        <div style="text-align:center;padding:10px 0;border-left:1px solid var(--border);border-right:1px solid var(--border)">
+          <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--ig);margin-bottom:4px">Instagram</div>
+          <div style="font-size:22px;font-weight:700" id="kpiIgFollowers">—</div>
+          <div style="font-size:11px;color:var(--muted)">Followers</div>
+        </div>
+        <div style="text-align:center;padding:10px 0">
+          <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--yt);margin-bottom:4px">YouTube</div>
+          <div style="font-size:22px;font-weight:700" id="kpiYtFollowers">—</div>
+          <div style="font-size:11px;color:var(--muted)">Subscribers</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="charts-row">
     <div class="card">
       <div class="card-header">
@@ -673,9 +737,11 @@ function checkPw(){{
       <th class="r s" onclick="sortPosts('likes')">Likes ↕</th>
       <th class="r s" onclick="sortPosts('comments')">Comments ↕</th>
       <th class="r s" onclick="sortPosts('shares')">Shares ↕</th>
+      <th class="r s" onclick="sortPosts('saves')">Saves ↕</th>
       <th class="r s" onclick="sortPosts('engagement')">Engagement ↕</th>
       <th class="r s" onclick="sortPosts('eng_rate')">Eng Rate ↕</th>
       <th class="r s" onclick="sortPosts('ctr')">CTR ↕</th>
+      <th class="r s" onclick="sortPosts('followers')">Followers ↕</th>
       <th>Link</th>
     </tr></thead><tbody id="postsBody"></tbody></table>
     </div>
@@ -684,6 +750,7 @@ function checkPw(){{
 
 <script>
 const RAW = {json.dumps(raw_posts)};
+const FOLLOWERS = {followers_json};
 let from=null,to=null,plat='all',sortKey='date',sortDir=-1;
 let charts={{}};
 
@@ -931,13 +998,15 @@ function renderPosts(){{
       <td class="r">${{fmt(p.reach)}}</td><td class="r">${{fmt(p.views)}}</td>
       <td class="r">${{fmt(p.likes)}}</td><td class="r">${{fmt(p.comments)}}</td>
       <td class="r">${{fmt(p.shares)}}</td>
+      <td class="r">${{fmt(p.saves)}}</td>
       <td class="r ev">${{fmt(p.engagement)}}</td>
       <td class="r">${{fmtP(p.eng_rate)}}</td>
       <td class="r">${{fmtP(p.ctr)}}</td>
+      <td class="r">${{fmt(p.followers)}}</td>
       <td>${{link}}</td>
     </tr>`;
   }});
-  document.getElementById('postsBody').innerHTML=html||'<tr><td colspan="13" style="text-align:center;color:var(--muted);padding:24px">No posts in this range</td></tr>';
+  document.getElementById('postsBody').innerHTML=html||'<tr><td colspan="15" style="text-align:center;color:var(--muted);padding:24px">No posts in this range</td></tr>';
 }}
 
 function sortPosts(key){{
@@ -946,6 +1015,14 @@ function sortPosts(key){{
 }}
 
 (function(){{
+  // Populate platform followers cards (static — not date-filtered)
+  function fmtF(v){{return v==null?'—':v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(1)+'k':String(v);}}
+  const fKeys={{Facebook:'kpiFbFollowers',Instagram:'kpiIgFollowers',youtube:'kpiYtFollowers'}};
+  Object.entries(fKeys).forEach(([pl,id])=>{{
+    const el=document.getElementById(id);
+    if(el)el.textContent=fmtF(FOLLOWERS[pl]);
+  }});
+
   const to=new Date();to.setHours(0,0,0,0);
   const from=new Date(to);from.setDate(from.getDate()-29);
   applyRange(toISO(from),toISO(to));
