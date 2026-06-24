@@ -961,7 +961,7 @@ function sortPosts(key){{
         const b=document.getElementById('staleBanner');
         const h=Math.round(hoursOld);
         document.getElementById('staleMsg').textContent=
-          `Dashboard data is ${h} hours old — the daily refresh may have failed.`;
+          `Dashboard data is ${{h}} hours old — the daily refresh may have failed.`;
         b.style.display='flex';
       }}
     }}
