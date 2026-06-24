@@ -549,6 +549,11 @@ function checkPw(){{
   </div>
 </div>
 
+<div id="staleBanner" style="display:none;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:10px 18px;margin:8px 20px;font-size:13px;color:#92400e;align-items:center;gap:10px">
+  <span>⚠</span>
+  <span id="staleMsg">Dashboard data is stale — last refresh was more than 48 hours ago.</span>
+  <a href="https://github.com/omarworkhero/workhero-social-dashboard/actions" target="_blank" style="margin-left:auto;color:#b45309;font-weight:600;white-space:nowrap">Check GHA →</a>
+</div>
 <div class="filter-bar">
   <span class="filter-label">Date range</span>
   <div class="preset-btns">
@@ -944,6 +949,23 @@ function sortPosts(key){{
   const to=new Date();to.setHours(0,0,0,0);
   const from=new Date(to);from.setDate(from.getDate()-29);
   applyRange(toISO(from),toISO(to));
+
+  // Stale data warning: show banner if dashboard is > 48 hours old
+  const genEl=document.querySelector('.gen-time');
+  if(genEl){{
+    const genText=genEl.textContent.replace('Generated ','').trim();
+    const genMs=new Date(genText).getTime();
+    if(!isNaN(genMs)){{
+      const hoursOld=(Date.now()-genMs)/3600000;
+      if(hoursOld>48){{
+        const b=document.getElementById('staleBanner');
+        const h=Math.round(hoursOld);
+        document.getElementById('staleMsg').textContent=
+          `Dashboard data is ${h} hours old — the daily refresh may have failed.`;
+        b.style.display='flex';
+      }}
+    }}
+  }}
 }})();
 </script>
 </body>
