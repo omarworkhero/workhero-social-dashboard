@@ -741,7 +741,6 @@ function checkPw(){{
       <th class="r s" onclick="sortPosts('engagement')">Engagement ↕</th>
       <th class="r s" onclick="sortPosts('eng_rate')">Eng Rate ↕</th>
       <th class="r s" onclick="sortPosts('ctr')">CTR ↕</th>
-      <th class="r s" onclick="sortPosts('followers')">Followers ↕</th>
       <th>Link</th>
     </tr></thead><tbody id="postsBody"></tbody></table>
     </div>
@@ -1002,11 +1001,10 @@ function renderPosts(){{
       <td class="r ev">${{fmt(p.engagement)}}</td>
       <td class="r">${{fmtP(p.eng_rate)}}</td>
       <td class="r">${{fmtP(p.ctr)}}</td>
-      <td class="r">${{fmt(p.followers)}}</td>
       <td>${{link}}</td>
     </tr>`;
   }});
-  document.getElementById('postsBody').innerHTML=html||'<tr><td colspan="15" style="text-align:center;color:var(--muted);padding:24px">No posts in this range</td></tr>';
+  document.getElementById('postsBody').innerHTML=html||'<tr><td colspan="14" style="text-align:center;color:var(--muted);padding:24px">No posts in this range</td></tr>';
 }}
 
 function sortPosts(key){{
