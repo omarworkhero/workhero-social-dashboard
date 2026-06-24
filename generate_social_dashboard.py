@@ -126,7 +126,8 @@ def fetch_facebook():
                 "comments": cmts,
                 "shares":   shrs,
                 "saves":    None,
-                "followers": fb_followers, "new_users": None, "ctr": None,
+                "new_followers": None,
+                "followers": None, "new_users": None, "ctr": None,
                 "url":      p.get("permalink_url", ""),
                 "engagement": eng,
                 "eng_rate": None,    # no reach → can't compute rate
@@ -181,10 +182,10 @@ def fetch_instagram():
         for m in media:
             mtype = m.get("media_type", "IMAGE")
 
-            reach = saves = total_interactions = None
+            reach = saves = total_interactions = new_followers = None
             ins_r = requests.get(
                 f"https://graph.facebook.com/v22.0/{m['id']}/insights",
-                params={"metric": "reach,saved,total_interactions", "access_token": token}, timeout=15)
+                params={"metric": "reach,saved,total_interactions,follows", "access_token": token}, timeout=15)
             if ins_r.status_code == 200:
                 for d in ins_r.json().get("data", []):
                     name = d.get("name")
@@ -194,6 +195,21 @@ def fetch_instagram():
                     if name == "reach":               reach               = val
                     if name == "saved":               saves               = val
                     if name == "total_interactions":  total_interactions  = val
+                    if name == "follows":             new_followers       = val
+            elif ins_r.status_code != 200:
+                # If follows metric caused the whole call to fail, retry without it
+                ins_r2 = requests.get(
+                    f"https://graph.facebook.com/v22.0/{m['id']}/insights",
+                    params={"metric": "reach,saved,total_interactions", "access_token": token}, timeout=15)
+                if ins_r2.status_code == 200:
+                    for d in ins_r2.json().get("data", []):
+                        name = d.get("name")
+                        val  = d.get("value")
+                        if val is None and d.get("values"):
+                            val = d["values"][0].get("value")
+                        if name == "reach":               reach               = val
+                        if name == "saved":               saves               = val
+                        if name == "total_interactions":  total_interactions  = val
 
             likes = m.get("like_count")    or 0
             cmts  = m.get("comments_count") or 0
@@ -210,7 +226,8 @@ def fetch_instagram():
                 "comments": cmts,
                 "shares":   None,   # Instagram share count not exposed via this API
                 "saves":    saves,  # bookmarks/saves from IG insights
-                "followers": ig_followers, "new_users": None, "ctr": None,
+                "new_followers": new_followers,
+                "followers": None, "new_users": None, "ctr": None,
                 "url":      m.get("permalink", ""),
                 "engagement": eng,
                 "eng_rate": round(eng / reach * 100, 2) if reach and reach > 0 else None,
@@ -294,7 +311,8 @@ def fetch_youtube():
                     "comments": cmts,
                     "shares":   None,
                     "saves":    None,
-                    "followers": yt_followers, "new_users": None,
+                    "new_followers": None,
+                    "followers": None, "new_users": None,
                     "ctr":      None,
                     "url":      f"https://www.youtube.com/watch?v={item['id']}",
                     "engagement": eng,
@@ -391,6 +409,7 @@ def fetch_linkedin():
                 "comments": cmts,
                 "shares":   shrs,
                 "saves":    None,
+                "new_followers": None,
                 "followers": None, "new_users": None,
                 "ctr":      round(clks / imp * 100, 2) if imp > 0 else None,
                 "url":      "",
@@ -741,6 +760,7 @@ function checkPw(){{
       <th class="r s" onclick="sortPosts('engagement')">Engagement ↕</th>
       <th class="r s" onclick="sortPosts('eng_rate')">Eng Rate ↕</th>
       <th class="r s" onclick="sortPosts('ctr')">CTR ↕</th>
+      <th class="r s" onclick="sortPosts('new_followers')">New Followers ↕</th>
       <th>Link</th>
     </tr></thead><tbody id="postsBody"></tbody></table>
     </div>
@@ -1001,10 +1021,11 @@ function renderPosts(){{
       <td class="r ev">${{fmt(p.engagement)}}</td>
       <td class="r">${{fmtP(p.eng_rate)}}</td>
       <td class="r">${{fmtP(p.ctr)}}</td>
+      <td class="r">${{fmt(p.new_followers)}}</td>
       <td>${{link}}</td>
     </tr>`;
   }});
-  document.getElementById('postsBody').innerHTML=html||'<tr><td colspan="14" style="text-align:center;color:var(--muted);padding:24px">No posts in this range</td></tr>';
+  document.getElementById('postsBody').innerHTML=html||'<tr><td colspan="15" style="text-align:center;color:var(--muted);padding:24px">No posts in this range</td></tr>';
 }}
 
 function sortPosts(key){{
