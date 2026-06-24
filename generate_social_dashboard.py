@@ -111,15 +111,15 @@ def fetch_facebook():
                 "date":     (p.get("created_time") or "")[:10],
                 "platform": ["Facebook"],
                 "ctype":    "",
-                "views":    None,
-                "reach":    reach,
+                "views":    reach,   # post_video_views → views column
+                "reach":    None,    # impressions unavailable (Meta deprecated)
                 "likes":    likes,
                 "comments": cmts,
                 "shares":   shrs,
                 "followers": None, "new_users": None, "ctr": None,
                 "url":      p.get("permalink_url", ""),
                 "engagement": eng,
-                "eng_rate": round(eng / reach * 100, 2) if reach and reach > 0 else None,
+                "eng_rate": None,    # no reach → can't compute rate
             })
         print(f"  ✓ {len(result)} Facebook posts")
         return result, "ok"
@@ -750,14 +750,16 @@ function render(){{
   const aEng=avg(posts.map(p=>p.eng_rate));
   const n=posts.length;
 
+  // When posts exist but metric is 0, show 0 rather than — so users can tell data loaded vs truly absent
+  const hasData=n>0;
   document.getElementById('kpiReach').innerHTML=fmt(tReach||null);
   document.getElementById('kpiReachSub').textContent=n+' posts';
-  document.getElementById('kpiViews').innerHTML=fmt(tViews||null);
+  document.getElementById('kpiViews').innerHTML=hasData?fmt(tViews):fmt(null);
   document.getElementById('kpiViewsSub').textContent='';
-  document.getElementById('kpiEng').innerHTML=fmt(tEng||null);
+  document.getElementById('kpiEng').innerHTML=hasData?fmt(tEng):fmt(null);
   document.getElementById('kpiEngRate').innerHTML=aEng!=null?fmtP(aEng)+' avg':'';
   document.getElementById('kpiPosts').textContent=n;
-  document.getElementById('kpiLikes').innerHTML=fmt(tLikes||null);
+  document.getElementById('kpiLikes').innerHTML=hasData?fmt(tLikes):fmt(null);
 
   // Top platform
   const byP={{}};
