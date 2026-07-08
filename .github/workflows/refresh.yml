@@ -2,7 +2,13 @@ name: Refresh Social Dashboard
 
 on:
   schedule:
-    - cron: "0 6 * * *"
+    - cron: "0 6 * * *"   # primary: 6AM UTC (2AM ET)
+    - cron: "0 18 * * *"  # backup:  6PM UTC (2PM ET)
+  push:
+    branches: [main]
+    paths-ignore:
+      - "index.html"
+      - "README.md"
   workflow_dispatch:
 
 permissions:
@@ -35,7 +41,6 @@ jobs:
           YT_CHANNEL_ID: ${{ secrets.YT_CHANNEL_ID }}
         run: python3 write_config.py
 
-      # Validates every API credential. Fails the job (and emails you) if anything is broken.
       - name: Health check — validate all credentials
         run: python3 health_check.py
 
@@ -52,3 +57,14 @@ jobs:
           git add index.html
           git diff --staged --quiet || git commit -m "chore: refresh dashboard $(date -u +%Y-%m-%d)"
           git push
+
+      - name: Notify Slack on failure
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          if [ -n "$SLACK_WEBHOOK_URL" ]; then
+            curl -s -X POST "$SLACK_WEBHOOK_URL" \
+              -H "Content-Type: application/json" \
+              -d '{"text":":rotating_light: *Social Dashboard refresh FAILED*\nCheck: https://github.com/omarworkhero/workhero-social-dashboard/actions"}'
+          fi
